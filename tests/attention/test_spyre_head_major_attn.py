@@ -23,6 +23,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from spyre_testing_plugin.attn_helpers import _build_metadata, _decode_reference_fp32
 from spyre_testing_plugin.pytest_plugin import spyre_available
 from vllm.utils.torch_utils import set_random_seed
 from vllm.v1.kv_cache_interface import AttentionSpec
@@ -49,9 +50,6 @@ from spyre_inference.v1.attention.ops.reshape_and_cache_head_major import (
     reshape_and_cache_head_major_kernel,
 )
 from spyre_inference.v1.attention.spyre_attn_bucketer import SpyreAttnBucketer
-
-# The token-major suite's helpers are imported inside each user, not here: the upstream
-# job's rootdir spans two trees, so `tests` is not importable at collection time.
 
 pytestmark = pytest.mark.attention
 
@@ -928,7 +926,6 @@ def test_head_major_decode_body_matches_fp32_reference(
     kv-minor row order the mask is broadcast in, not the fp16 tolerances.
     """
     from spyre_inference.v1.attention.ops import batched_decode_head_major, tile_loop
-    from tests.attention.test_spyre_attn import _decode_reference_fp32
 
     monkeypatch.setattr(tile_loop, "USE_FOR_EACH_TILE", False)
     monkeypatch.setattr(batched_decode_head_major, "USE_FOR_EACH_TILE", False)
@@ -1042,8 +1039,6 @@ def test_head_major_batched_decode_uses_plain_page_ids(default_vllm_config, conf
     Guards against folding them onto ``page * KV + kv`` again: that moves the same bytes
     with num_kv_heads times the gather entries, which measured ~2x the kernel time.
     """
-    from tests.attention.test_spyre_attn import _build_metadata
-
     torch.set_default_device("cpu")
     num_query_heads, num_kv_heads, head_size, block_size = 8, 4, 64, 64
     num_seqs, blocks_per_seq = 8, 4
