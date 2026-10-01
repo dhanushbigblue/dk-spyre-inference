@@ -42,7 +42,8 @@ jobs:
         TORCH_SPYRE_REV=$(grep -oP '^torch-spyre = .*rev = "\K[^"]+' pyproject.toml)
         git clone --depth 1 https://github.com/torch-spyre/torch-spyre /tmp/torch-spyre
         git -C /tmp/torch-spyre fetch --depth 1 origin "$TORCH_SPYRE_REV"
-        git -C /tmp/torch-spyre checkout "$TORCH_SPYRE_REV"
+        # FETCH_HEAD, not the ref: a shallow fetch of a tag creates no local tag.
+        git -C /tmp/torch-spyre checkout FETCH_HEAD
         mkdir /tmp/torch-spyre-stubs
         cp -r /tmp/torch-spyre/torch_spyre /tmp/torch-spyre-stubs/
 
@@ -74,6 +75,6 @@ jobs:
     - name: Run the ingest script tests
       run: |
         uv run --no-project \
-          --with pytest --with lxml --with clickhouse-connect --with requests \
+          --with pytest --with lxml --with clickhouse-connect --with requests --with pyyaml \
           --with "git+https://github.com/torch-spyre/torch-spyre@main#subdirectory=extensions/clickhouse-ingest" \
           pytest .github/scripts -q -p no:cacheprovider -o addopts=""
