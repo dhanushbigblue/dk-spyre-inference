@@ -15,7 +15,7 @@
 import torch
 
 
-def decode_reference_fp32(
+def _decode_reference_fp32(
     query: torch.Tensor,
     k_pages: torch.Tensor,
     v_pages: torch.Tensor,

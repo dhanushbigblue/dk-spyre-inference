@@ -23,7 +23,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from decode_helpers import decode_reference_fp32
+from decode_helpers import _decode_reference_fp32
 from spyre_testing_plugin.pytest_plugin import spyre_available
 from vllm.utils.torch_utils import set_random_seed
 from vllm.v1.kv_cache_interface import AttentionSpec
@@ -997,7 +997,7 @@ def test_head_major_decode_body_matches_fp32_reference(
         block_size,
         head_size,
     )
-    expected = decode_reference_fp32(
+    expected = _decode_reference_fp32(
         query_padded,
         k_pages,
         v_pages,
@@ -1047,7 +1047,7 @@ def test_head_major_batched_decode_uses_plain_page_ids(default_vllm_config, conf
     Guards against folding them onto ``page * KV + kv`` again: that moves the same bytes
     with num_kv_heads times the gather entries, which measured ~2x the kernel time.
     """
-    from spyre_testing_plugin.attn_helpers import _build_metadata
+    from tests.attention.test_spyre_attn import _build_metadata
 
     torch.set_default_device("cpu")
     num_query_heads, num_kv_heads, head_size, block_size = 8, 4, 64, 64
@@ -1100,7 +1100,7 @@ def test_dispatch_declines_a_gather_spanning_the_cache(default_vllm_config, conf
     Two decode seqs of two blocks each over a three-page cache is the TP2 gemma-4 shape
     that compiled the skipped variant mid-serving and hit a torch-spyre codegen assert.
     """
-    from spyre_testing_plugin.attn_helpers import _build_metadata
+    from tests.attention.test_spyre_attn import _build_metadata
 
     torch.set_default_device("cpu")
     num_query_heads, num_kv_heads, head_size, block_size = 8, 2, 64, 64

@@ -18,7 +18,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
-from decode_helpers import decode_reference_fp32
+from decode_helpers import _decode_reference_fp32
 from spyre_testing_plugin.attn_helpers import (
     _build_metadata,
     _fused_qkv_kv_views,
@@ -1991,7 +1991,7 @@ def test_batched_decode_matches_fp32_reference(
         head_size,
     )
 
-    expected = decode_reference_fp32(
+    expected = _decode_reference_fp32(
         query_padded,
         k_pages,
         v_pages,
