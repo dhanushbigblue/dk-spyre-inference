@@ -245,9 +245,6 @@ ignore = [
     "B905",
 ]
 
-[tool.ruff.lint.isort]
-known-first-party = ["decode_helpers"]
-
 [tool.codespell]
 ignore-words-list = "dout, te, indicies, subtile, ElementE, arange"
 skip = "*.svg,./tests/hf_cache.json"
