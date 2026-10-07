@@ -23,11 +23,11 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from decode_helpers import _decode_reference_fp32
 from spyre_testing_plugin.pytest_plugin import spyre_available
 from vllm.utils.torch_utils import set_random_seed
 from vllm.v1.kv_cache_interface import AttentionSpec
 
-from decode_helpers import _decode_reference_fp32
 from spyre_inference import envs
 from spyre_inference.custom_ops.utils import convert
 from spyre_inference.platform import TorchSpyrePlatform

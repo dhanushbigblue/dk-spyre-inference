@@ -18,6 +18,7 @@ from unittest.mock import Mock
 
 import pytest
 import torch
+from decode_helpers import _decode_reference_fp32
 from spyre_testing_plugin.attn_helpers import (
     _build_metadata,
     _fused_qkv_kv_views,
@@ -29,7 +30,6 @@ from spyre_testing_plugin.pytest_plugin import spyre_available
 from vllm.utils.torch_utils import set_random_seed
 from vllm.v1.kv_cache_interface import AttentionSpec
 
-from decode_helpers import _decode_reference_fp32
 from spyre_inference.custom_ops.utils import convert
 from spyre_inference.v1.attention.backends import spyre_attn
 from spyre_inference.v1.attention.backends.spyre_attn import (
