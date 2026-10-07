@@ -15,4 +15,6 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
+_dir = os.path.dirname(__file__)
+if _dir not in sys.path:
+    sys.path.append(_dir)
