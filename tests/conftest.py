@@ -13,12 +13,11 @@
 # limitations under the License.
 
 from functools import cache
-import os
 from pathlib import Path
 
 import pytest
-from spyre_testing_plugin.tags import model_from_params, result_tags
 import yaml
+from spyre_testing_plugin.tags import model_from_params, result_tags
 
 from spyre_inference import envs
 from spyre_inference.v1.worker import compile_guard
@@ -91,7 +90,10 @@ def pytest_collection_modifyitems(items):
             if model and _is_gated_model(model):
                 item.add_marker(
                     pytest.mark.skip(
-                        reason=f"Access to gated model '{model}' requires an authorized Hugging Face token."
+                        reason=(
+                            f"Access to gated model '{model}' requires an authorized "
+                            "Hugging Face token."
+                        )
                     )
                 )
 
