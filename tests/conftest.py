@@ -12,11 +12,49 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from functools import cache
+import os
+from pathlib import Path
+
 import pytest
-from spyre_testing_plugin.tags import result_tags
+from spyre_testing_plugin.tags import model_from_params, result_tags
+import yaml
 
 from spyre_inference import envs
 from spyre_inference.v1.worker import compile_guard
+
+_CACHE_CONFIG = (
+    Path(__file__).resolve().parent.parent
+    / ".github"
+    / "cache_config"
+    / "hf_models_and_datasets.yaml"
+)
+
+
+def _has_hf_token() -> bool:
+    import huggingface_hub
+
+    return huggingface_hub.get_token() is not None
+
+
+@cache
+def _gated_models() -> set[str]:
+    if not _CACHE_CONFIG.exists():
+        return set()
+    try:
+        raw = yaml.safe_load(_CACHE_CONFIG.read_text()) or {}
+        entries = raw.get("gated_models", [])
+        return {
+            entry if isinstance(entry, str) else entry["repo"]
+            for entry in entries
+            if isinstance(entry, str) or (isinstance(entry, dict) and "repo" in entry)
+        }
+    except Exception:
+        return set()
+
+
+def _is_gated_model(model: str) -> bool:
+    return model in _gated_models()
 
 
 def pytest_collection_modifyitems(items):
@@ -28,9 +66,10 @@ def pytest_collection_modifyitems(items):
     tagger silently drops tags on exactly the cases that most need them. Collection
     time has no such gap, same as the upstream-test tagging in pytest_plugin.py.
     """
-    skip = pytest.mark.skip(
+    skip_batched = pytest.mark.skip(
         reason="will be re-enabled once batched decode is working with for_each_tile"
     )
+    has_token = _has_hf_token()
     for item in items:
         params = getattr(getattr(item, "callspec", None), "params", {})
         for name, value in result_tags(params):
@@ -45,7 +84,16 @@ def pytest_collection_modifyitems(items):
             or "enable_batched_decode" in item.fixturenames
             or "batched_decode_calls" in item.fixturenames
         ):
-            item.add_marker(skip)
+            item.add_marker(skip_batched)
+
+        if not has_token:
+            model = model_from_params(params)
+            if model and _is_gated_model(model):
+                item.add_marker(
+                    pytest.mark.skip(
+                        reason=f"Access to gated model '{model}' requires an authorized Hugging Face token."
+                    )
+                )
 
 
 @pytest.fixture(autouse=True)
