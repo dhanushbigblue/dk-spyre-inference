@@ -56,6 +56,21 @@ def _is_gated_model(model: str) -> bool:
     return model in _gated_models()
 
 
+@cache
+def _is_model_available(model: str) -> bool:
+    if not _is_gated_model(model):
+        return True
+    if _has_hf_token():
+        return True
+    try:
+        from huggingface_hub import snapshot_download
+
+        snapshot_download(model, local_files_only=True)
+        return True
+    except Exception:
+        return False
+
+
 def pytest_collection_modifyitems(items):
     """Skip batched decode until it composes with the default tiled page walk.
 
@@ -68,7 +83,6 @@ def pytest_collection_modifyitems(items):
     skip_batched = pytest.mark.skip(
         reason="will be re-enabled once batched decode is working with for_each_tile"
     )
-    has_token = _has_hf_token()
     for item in items:
         params = getattr(getattr(item, "callspec", None), "params", {})
         for name, value in result_tags(params):
@@ -85,17 +99,16 @@ def pytest_collection_modifyitems(items):
         ):
             item.add_marker(skip_batched)
 
-        if not has_token:
-            model = model_from_params(params)
-            if model and _is_gated_model(model):
-                item.add_marker(
-                    pytest.mark.skip(
-                        reason=(
-                            f"Access to gated model '{model}' requires an authorized "
-                            "Hugging Face token."
-                        )
+        model = model_from_params(params)
+        if model and not _is_model_available(model):
+            item.add_marker(
+                pytest.mark.skip(
+                    reason=(
+                        f"Access to gated model '{model}' requires an authorized "
+                        "Hugging Face token or local cache."
                     )
                 )
+            )
 
 
 @pytest.fixture(autouse=True)
