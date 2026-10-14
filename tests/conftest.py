@@ -80,7 +80,7 @@ def pytest_collection_modifyitems(items):
     tagger silently drops tags on exactly the cases that most need them. Collection
     time has no such gap, same as the upstream-test tagging in pytest_plugin.py.
     """
-    skip_batched = pytest.mark.skip(
+    skip = pytest.mark.skip(
         reason="will be re-enabled once batched decode is working with for_each_tile"
     )
     for item in items:
@@ -97,7 +97,7 @@ def pytest_collection_modifyitems(items):
             or "enable_batched_decode" in item.fixturenames
             or "batched_decode_calls" in item.fixturenames
         ):
-            item.add_marker(skip_batched)
+            item.add_marker(skip)
 
         model = model_from_params(params)
         if model and not _is_model_available(model):
