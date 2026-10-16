@@ -141,17 +141,13 @@ def spyre_device_count() -> int:
     """
     try:
         aiu_world_size = int(os.environ.get("AIU_WORLD_SIZE", "0"))
-    except ValueError:
-        aiu_world_size = 0
-
-    spyre_devices = os.environ.get("SPYRE_DEVICES")
-    if spyre_devices is not None:
-        devices = [d.strip() for d in spyre_devices.split(",") if d.strip()]
-        if aiu_world_size > 0:
+        spyre_devices = os.environ.get("SPYRE_DEVICES")
+        if spyre_devices is not None:
+            devices = [d.strip() for d in spyre_devices.split(",") if d.strip()]
             return min(len(devices), aiu_world_size)
-        return len(devices)
-
-    return aiu_world_size
+        return aiu_world_size
+    except ValueError:
+        return 0
 
 
 # ---------------------------------------------------------------------------
