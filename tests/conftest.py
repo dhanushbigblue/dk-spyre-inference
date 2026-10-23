@@ -15,7 +15,8 @@
 import pytest
 from spyre_testing_plugin.tags import result_tags
 
-from spyre_inference import config as spyre_config, envs
+from spyre_inference import config as spyre_config
+from spyre_inference import envs
 from spyre_inference.v1.worker import compile_guard
 
 
