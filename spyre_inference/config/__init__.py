@@ -43,7 +43,12 @@ def current_platform() -> str:
     returned as-is so they never match a restricted platform list.
     """
     machine = platform.machine()
-    _aliases = {"amd64": "x86_64", "x86": "x86_64", "s390": "s390x"}
+    _aliases = {
+        "amd64": "x86_64",
+        "x86": "x86_64",
+        "s390": "s390x",
+        "ppc64": "ppc64le",
+    }
     return _aliases.get(machine.lower(), machine)
 
 

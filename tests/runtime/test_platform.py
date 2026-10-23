@@ -35,6 +35,7 @@ from vllm.config.compilation import CompilationConfig
         (256, 256),
     ],
 )
+@pytest.mark.exclude__plat_ppc64le
 def test_block_size(requested, expected):
     """A user-supplied block size is rounded up to 64; otherwise the Spyre default wins."""
     from spyre_inference.platform import TorchSpyrePlatform
@@ -115,6 +116,7 @@ def test_memory_info_passes_through_when_the_native_call_works(monkeypatch):
     assert torch.accelerator.get_memory_info() == (123, 456)
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_num_gpu_blocks_override_homogeneous():
     """Non-hybrid models get seqs × blocks/seq pinned, plus the null block."""
     from spyre_inference.platform import TorchSpyrePlatform
@@ -143,6 +145,7 @@ def test_num_gpu_blocks_override_homogeneous():
     assert vllm_config.cache_config.num_gpu_blocks_override == max_num_seqs * blocks_per_seq + 1
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_num_gpu_blocks_override_hybrid_matches_homogeneous():
     """Hybrid models get the same block count: one collapsed KV cache group.
 
@@ -180,6 +183,7 @@ def test_num_gpu_blocks_override_hybrid_matches_homogeneous():
     assert vllm_config.cache_config.num_gpu_blocks_override == max_num_seqs * blocks_per_seq + 1
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_num_gpu_blocks_override_skipped_for_pooling():
     """Encoder/pooling models have no KV cache — do not invent a block count."""
     from spyre_inference.platform import TorchSpyrePlatform
@@ -519,6 +523,7 @@ def _defaults_config(enforce_eager: bool, mode) -> VllmConfig:
     )
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_compile_default_is_stock_when_not_eager():
     """--enforce-eager off ⇒ default to STOCK_TORCH_COMPILE, keeping CustomOp dispatch."""
     from vllm.config.compilation import CompilationMode
@@ -532,6 +537,7 @@ def test_compile_default_is_stock_when_not_eager():
     assert "all" in vllm_config.compilation_config.custom_ops
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_enforce_eager_forces_none():
     """--enforce-eager on ⇒ CompilationMode.NONE (everything eager)."""
     from vllm.config.compilation import CompilationMode
@@ -544,6 +550,7 @@ def test_enforce_eager_forces_none():
     assert vllm_config.compilation_config.mode == CompilationMode.NONE
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_enforce_eager_is_the_only_eager_switch():
     """An explicit mode=NONE without --enforce-eager is still overridden to STOCK."""
     from vllm.config.compilation import CompilationMode

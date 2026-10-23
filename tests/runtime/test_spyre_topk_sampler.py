@@ -134,6 +134,7 @@ def test_log_space_gumbel_matches_softmax_draw(rows: int) -> None:
     assert torch.equal(sampled, ref)
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_runner_installs_spyre_topk_sampler() -> None:
     """The runner's __init__ patches upstream's Sampler in place."""
     from vllm.config import CacheConfig, ModelConfig, VllmConfig

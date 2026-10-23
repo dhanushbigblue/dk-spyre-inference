@@ -1099,6 +1099,7 @@ def test_head_major_matches_token_major(
     torch.testing.assert_close(outputs["head_major"], outputs["token_major"], atol=1e-2, rtol=1e-2)
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_runner_allocates_head_major_for_a_head_major_layer():
     """The worker's allocation follows the layer's impl, not a hardcoded shape."""
     from vllm.config import CacheConfig, ModelConfig, VllmConfig
@@ -1167,6 +1168,7 @@ def test_runner_allocates_head_major_for_a_head_major_layer():
     gc.collect()
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_mixed_layout_layers_in_one_kv_cache_tensor_each_get_their_own_pages(monkeypatch):
     """vLLM packs every attention layer into one KVCacheTensor.
 

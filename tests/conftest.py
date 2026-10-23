@@ -16,11 +16,13 @@ import pytest
 from spyre_testing_plugin.tags import result_tags
 
 from spyre_inference import envs
+from spyre_inference.config import current_platform
 from spyre_inference.v1.worker import compile_guard
 
 
 def pytest_collection_modifyitems(items):
-    """Skip batched decode until it composes with the default tiled page walk.
+    """Skip batched decode until it composes with the default tiled page walk,
+    and skip architecture-excluded tests marked with exclude__plat_<arch>.
 
     Also stamps each item's JUnit tags here, not in a fixture: pytest skips a
     function-scoped autouse fixture entirely for a marked skip, a true skipif,
@@ -28,6 +30,7 @@ def pytest_collection_modifyitems(items):
     tagger silently drops tags on exactly the cases that most need them. Collection
     time has no such gap, same as the upstream-test tagging in pytest_plugin.py.
     """
+    arch = current_platform()
     skip = pytest.mark.skip(
         reason="will be re-enabled once batched decode is working with for_each_tile"
     )
@@ -46,6 +49,18 @@ def pytest_collection_modifyitems(items):
             or "batched_decode_calls" in item.fixturenames
         ):
             item.add_marker(skip)
+
+        for mark in item.iter_markers():
+            if mark.name.startswith("exclude__plat_"):
+                excluded_arch = mark.name[len("exclude__plat_") :]
+                if excluded_arch == arch:
+                    reason = (
+                        mark.kwargs.get("reason")
+                        or (mark.args[0] if mark.args else None)
+                        or f"Qwen models are not supported on {arch} architecture"
+                    )
+                    item.add_marker(pytest.mark.skip(reason=reason))
+                    break
 
 
 @pytest.fixture(autouse=True)

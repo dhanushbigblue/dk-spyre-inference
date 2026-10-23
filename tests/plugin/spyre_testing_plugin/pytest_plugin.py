@@ -704,6 +704,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             for name, value in result_tags(params):
                 item.user_properties.append((name, value))
 
+            model_param = str(params.get("model", "")).lower()
+            config_param = str(params.get("config_filename", "")).lower()
+            if "qwen" in model_param or "qwen" in config_param or "qwen" in item.nodeid.lower():
+                item.add_marker(pytest.mark.exclude__plat_ppc64le)
+
             fc = _find_file_config(test_path, file_configs)
             if fc is None:
                 item.add_marker(pytest.mark.skip(reason=f"not in {_YAML_FILENAME}"))

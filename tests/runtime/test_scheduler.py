@@ -34,6 +34,9 @@ from vllm.v1.structured_output import StructuredOutputManager
 
 from spyre_inference.v1.core.scheduler import TorchSpyreScheduler
 
+# All tests in this module drive _scheduler() which uses Qwen/Qwen3-0.6B.
+pytestmark = pytest.mark.exclude__plat_ppc64le
+
 # A 200-token prompt against a 256-token budget leaves 56 tokens over, which is
 # exactly the leftover upstream tops the batch up with.
 PROMPT_LEN = 200

@@ -875,6 +875,7 @@ def test_kernel_block_sizes_accept_the_layer_spec():
         assert [s.base for s in sizes if isinstance(s, MultipleOf)] == [64]
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_block_size_validation():
     """Test that SpyreAttentionMetadataBuilder validates block_size alignment.
 
@@ -951,6 +952,7 @@ def test_block_size_validation():
         assert builder.block_size == block_size
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_kv_cache_shape_matches_runner_allocation():
     """SpyreAttentionBackend.get_kv_cache_shape must match the runner's allocation.
 
@@ -1062,6 +1064,7 @@ def test_kv_cache_shape_matches_runner_allocation():
         assert pages.device_tensor_layout().device_size[0] == num_slots
 
 
+@pytest.mark.exclude__plat_ppc64le
 def test_each_layer_in_one_kv_cache_tensor_gets_its_own_pages(monkeypatch):
     """A KVCacheTensor packs *every* attention layer into one allocation.
 

@@ -211,3 +211,27 @@ def test_collection_time_tagging_survives_skip_and_setup_error(pytester, monkeyp
         "test_passes": expected,
         "test_marker_skip": expected,
     }
+
+
+def test_exclude_plat_skips_matching_architecture(pytester, monkeypatch):
+    """exclude__plat_ppc64le marker skips test at collection time on ppc64le."""
+    import spyre_inference.config
+
+    monkeypatch.setattr(spyre_inference.config, "current_platform", lambda: "ppc64le")
+
+    pytester.makepyfile(
+        """
+        import pytest
+
+        @pytest.mark.exclude__plat_ppc64le
+        def test_excluded_on_ppc64le():
+            assert True
+
+        def test_not_excluded_on_ppc64le():
+            assert True
+        """
+    )
+
+    result = pytester.runpytest("-rs", plugins=[production_conftest])
+    result.assert_outcomes(passed=1, skipped=1)
+    result.stdout.fnmatch_lines(["*Qwen models are not supported on ppc64le architecture*"])
