@@ -15,8 +15,7 @@
 import pytest
 from spyre_testing_plugin.tags import result_tags
 
-from spyre_inference import envs
-from spyre_inference.config import current_platform
+from spyre_inference import config as spyre_config, envs
 from spyre_inference.v1.worker import compile_guard
 
 
@@ -30,7 +29,7 @@ def pytest_collection_modifyitems(items):
     tagger silently drops tags on exactly the cases that most need them. Collection
     time has no such gap, same as the upstream-test tagging in pytest_plugin.py.
     """
-    arch = current_platform()
+    arch = spyre_config.current_platform()
     skip = pytest.mark.skip(
         reason="will be re-enabled once batched decode is working with for_each_tile"
     )
