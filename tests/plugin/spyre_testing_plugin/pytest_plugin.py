@@ -651,14 +651,24 @@ def _find_allow_entry(test_name: str, allow_list: tuple[AllowEntry, ...]) -> All
     return None
 
 
-def _is_qwen_on_power(item: pytest.Item) -> bool:
-    """Return True if item is a Qwen test running on Power architecture."""
-    if platform.machine() not in ("ppc64le", "ppc64"):
+# Architecture-specific model family exclusions for upstream tests
+_UNSUPPORTED_ARCH_MODELS: dict[str, tuple[str, ...]] = {
+    "ppc64le": ("qwen",),
+    "ppc64": ("qwen",),
+}
+
+
+def _is_unsupported_on_current_platform(item: pytest.Item) -> bool:
+    """Return True if the test item matches unsupported model families for the host architecture."""
+    arch = platform.machine()
+    patterns = _UNSUPPORTED_ARCH_MODELS.get(arch)
+    if not patterns:
         return False
-    if "qwen" in str(item.fspath).lower():
+    path_str = str(item.fspath).lower()
+    if any(pat in path_str for pat in patterns):
         return True
     params = getattr(getattr(item, "callspec", None), "params", {})
-    return any("qwen" in str(v).lower() for v in params.values())
+    return any(any(pat in str(v).lower() for pat in patterns) for v in params.values())
 
 
 def _should_skip_params(item: pytest.Item, allow_entry: AllowEntry) -> bool:
@@ -708,7 +718,7 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if not test_path.is_relative_to(upstream_tests_base):
                 continue
 
-            if _is_qwen_on_power(item):
+            if _is_unsupported_on_current_platform(item):
                 items.remove(item)
                 deselected.append(item)
                 continue
