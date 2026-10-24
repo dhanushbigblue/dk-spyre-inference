@@ -209,20 +209,6 @@ def _load_upstream_config() -> UpstreamTestConfig:
     return _parse_config(raw["tests"])
 
 
-def _current_machine() -> str:
-    """Return normalized architecture name."""
-    machine = platform.machine().lower()
-    aliases = {"amd64": "x86_64", "x86": "x86_64", "s390": "s390x"}
-    return aliases.get(machine, machine)
-
-
-def _is_platform_excluded(exclude_platforms: tuple[str, ...]) -> bool:
-    """Return True if the current platform is in exclude_platforms."""
-    if not exclude_platforms:
-        return False
-    return _current_machine() in exclude_platforms
-
-
 def _parse_config(raw_tests: dict) -> UpstreamTestConfig:
     files: list[FileConfig] = []
     for file_entry in raw_tests.get("files", []):
@@ -233,15 +219,6 @@ def _parse_config(raw_tests: dict) -> UpstreamTestConfig:
                 ParamSkip(param_name=k, values=frozenset(v))
                 for k, v in params_section.get("skip", {}).items()
             ]
-            for platform_name, skips in params_section.get("skip_platforms", {}).items():
-                for k, v in skips.items():
-                    param_skips.append(
-                        ParamSkip(
-                            param_name=k,
-                            values=frozenset(v),
-                            exclude_platforms=(platform_name,),
-                        )
-                    )
             param_allows = [
                 ParamAllow(param_name=k, values=frozenset(v))
                 for k, v in params_section.get("allow", {}).items()
@@ -267,7 +244,6 @@ def _parse_config(raw_tests: dict) -> UpstreamTestConfig:
                     param_overrides=tuple(param_overrides),
                     tolerances=tolerances,
                     fixture_names=tuple(allow.get("fixture_names", ())),
-                    exclude_platforms=tuple(allow.get("exclude_platforms", [])),
                 )
             )
         block_list = [BlockEntry(test=b["test"]) for b in file_entry.get("block_list", [])]
@@ -277,7 +253,6 @@ def _parse_config(raw_tests: dict) -> UpstreamTestConfig:
                 allow_list=tuple(allow_list),
                 block_list=tuple(block_list),
                 config_list=file_entry.get("config_list"),
-                exclude_platforms=tuple(file_entry.get("exclude_platforms", [])),
             )
         )
     return UpstreamTestConfig(files=tuple(files))
@@ -676,6 +651,16 @@ def _find_allow_entry(test_name: str, allow_list: tuple[AllowEntry, ...]) -> All
     return None
 
 
+def _is_qwen_on_power(item: pytest.Item) -> bool:
+    """Return True if item is a Qwen test running on Power architecture."""
+    if platform.machine() not in ("ppc64le", "ppc64"):
+        return False
+    if "qwen" in str(item.fspath).lower():
+        return True
+    params = getattr(getattr(item, "callspec", None), "params", {})
+    return any("qwen" in str(v).lower() for v in params.values())
+
+
 def _should_skip_params(item: pytest.Item, allow_entry: AllowEntry) -> bool:
     """Check if test should be skipped based on param_skips or param_allows.
 
@@ -694,19 +679,8 @@ def _should_skip_params(item: pytest.Item, allow_entry: AllowEntry) -> bool:
 
     # Check param_skips (blacklist)
     for ps in allow_entry.param_skips:
-        if ps.exclude_platforms and not _is_platform_excluded(ps.exclude_platforms):
-            continue
-        if ps.param_name in callspec.params:
-            param_val = callspec.params[ps.param_name]
-            if param_val in ps.values:
-                return True
-            param_str = str(param_val)
-            if any(fnmatch.fnmatch(param_str, str(v)) for v in ps.values):
-                return True
-            if hasattr(param_val, "name") and any(
-                fnmatch.fnmatch(param_val.name, str(v)) for v in ps.values
-            ):
-                return True
+        if ps.param_name in callspec.params and callspec.params[ps.param_name] in ps.values:
+            return True
 
     return False
 
@@ -734,37 +708,42 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
             if not test_path.is_relative_to(upstream_tests_base):
                 continue
 
-            fc = _find_file_config(test_path, file_configs)
-            if fc is None or _is_platform_excluded(fc.exclude_platforms):
+            if _is_qwen_on_power(item):
                 items.remove(item)
                 deselected.append(item)
                 continue
 
-            test_name = item.originalname or item.name
-            if _matches_block_list(test_name, fc.block_list):
-                items.remove(item)
-                deselected.append(item)
-                continue
-
-            allow_entry = _find_allow_entry(test_name, fc.allow_list)
-            if allow_entry is None or _is_platform_excluded(allow_entry.exclude_platforms):
-                items.remove(item)
-                deselected.append(item)
-                continue
-
-            if _should_skip_params(item, allow_entry):
-                items.remove(item)
-                deselected.append(item)
-                continue
-
-            # Item will run (or be explicitly skipped/xfailed) — tag it now.
             item.add_marker(upstream_marker)
+
+            # Tag upstream items before the skip/xfail branches so tags land
+            # regardless of the item's eventual disposition.
             params = getattr(getattr(item, "callspec", None), "params", {})
             for name, value in result_tags(params):
                 item.user_properties.append((name, value))
 
-            for tag in allow_entry.tags:
-                item.add_marker(getattr(pytest.mark, tag))
+            fc = _find_file_config(test_path, file_configs)
+            if fc is None:
+                item.add_marker(pytest.mark.skip(reason=f"not in {_YAML_FILENAME}"))
+                continue
+
+            test_name = item.originalname or item.name
+            if _matches_block_list(test_name, fc.block_list):
+                item.add_marker(pytest.mark.skip(reason=f"blocked by {_YAML_FILENAME}"))
+                continue
+
+            allow_entry = _find_allow_entry(test_name, fc.allow_list)
+
+            if allow_entry:
+                for tag in allow_entry.tags:
+                    item.add_marker(getattr(pytest.mark, tag))
+
+            if allow_entry is None:
+                item.add_marker(pytest.mark.skip(reason="not in allow_list"))
+                continue
+
+            if _should_skip_params(item, allow_entry):
+                item.add_marker(pytest.mark.skip(reason="param skipped"))
+                continue
 
             if allow_entry.mode == "skip":
                 item.add_marker(pytest.mark.skip(reason=f"skipped by {_YAML_FILENAME}"))

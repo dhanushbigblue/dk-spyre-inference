@@ -30,7 +30,6 @@ class ParamSkip:
 
     param_name: str
     values: frozenset[Any]
-    exclude_platforms: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -86,7 +85,6 @@ class AllowEntry:
     param_overrides: tuple[ParamOverride, ...] = ()
     tolerances: Tolerances | None = None
     fixture_names: tuple[str, ...] = ()
-    exclude_platforms: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -116,7 +114,6 @@ class FileConfig:
     allow_list: tuple[AllowEntry, ...] = ()
     block_list: tuple[BlockEntry, ...] = ()
     config_list: str | None = None
-    exclude_platforms: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
