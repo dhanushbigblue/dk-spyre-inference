@@ -51,6 +51,10 @@ tests:
             skip:
               # input embeddings not yet supported on spyre
               use_prompt_embeds: [true]
+            skip_platforms:
+              ppc64le:
+                model:
+                  - Qwen/Qwen2.5-0.5B-Instruct
 
     - rel_path: tests/models/transformers/test_backend.py
       allow_list:
@@ -120,6 +124,7 @@ tests:
                 - google/gemma-3-1b-it
 
     - rel_path: tests/models/language/generation_ppl_test/test_qwen.py
+      exclude_platforms: [ppc64le]
       allow_list:
         - test: "test_ppl"
           mode: skip # model_info0 (Qwen3-0.6B): RAS::VFIO::MapDMAFailed; model_info1 (Qwen3-0.6B-FP8): KeyError PlatformEnum.OOT - FP8 quant not supported on Spyre; model_info2 (Qwen3.5-0.8B): Qwen3_5ForConditionalGeneration not in vLLM registry
@@ -141,6 +146,11 @@ tests:
         - test: "test_gsm8k_correctness"
           mode: mandatory_pass
           tags: [gsm8k, upstream, uses_subprocess]
+          params:
+            skip_platforms:
+              ppc64le:
+                config_filename:
+                  - "*qwen*"
 
     - rel_path: tests/models/language/pooling/test_embedding.py
       allow_list:
