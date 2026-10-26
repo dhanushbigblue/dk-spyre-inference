@@ -654,7 +654,6 @@ def _find_allow_entry(test_name: str, allow_list: tuple[AllowEntry, ...]) -> All
 # Architecture-specific model family exclusions for upstream tests
 _UNSUPPORTED_ARCH_MODELS: dict[str, tuple[str, ...]] = {
     "ppc64le": ("qwen",),
-    "ppc64": ("qwen",),
 }
 
 
@@ -668,6 +667,10 @@ def _is_unsupported_on_current_platform(item: pytest.Item) -> bool:
     if any(pat in path_str for pat in patterns):
         return True
     params = getattr(getattr(item, "callspec", None), "params", {})
+    # Deliberately sweep all param values, not just a "model" key. The GSM8K gate
+    # (test_gsm8k_correctness.py) has no "qwen" in its file path; the match comes
+    # from its config_filename param ("qwen2.5-0.5b-instruct.yaml"). Narrowing this
+    # to params["model"] would silently re-enable that gate on ppc64le.
     return any(any(pat in str(v).lower() for pat in patterns) for v in params.values())
 
 
